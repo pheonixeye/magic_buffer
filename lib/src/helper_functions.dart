@@ -511,5 +511,5 @@ void boundsError(dynamic value, int length, [String? type]) {
   }
 
   throw RangeError(
-      "type || 'offset',`>= ${type != null ? 1 : 0} and <= ${length}`, value");
+      "type || 'offset',`>= ${type != null ? 1 : 0} and <= $length`, value");
 }

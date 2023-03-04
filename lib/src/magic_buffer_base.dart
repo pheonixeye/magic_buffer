@@ -12,6 +12,7 @@ Buffer createBuffer(int length) {
     throw RangeError('The value $length is invalid for option "size"');
   }
   // Return an augmented `Uint8Array` instance
+  // ignore: no_leading_underscores_for_local_identifiers
   Uint8List _buf = Uint8List(length);
   return Buffer(_buf);
 }
@@ -68,11 +69,12 @@ int _byteLength(dynamic value,
 
 class Buffer {
   late Uint8List _buf;
+  // ignore: prefer_final_fields
   late String _encoding;
   static const bool _isBuffer = true;
   static const int poolSize = 8192; // not used by this implementation
 
-  @DynamicTypeArgument('value', 'int | Uint8List | String | Buffer')
+  @DynamicTypeArgument('value', 'int | Uint8List | List<int> | String | Buffer')
   Buffer(dynamic value,
       [int length = 0, int offset = 0, String encoding = 'utf8'])
       : _encoding = encoding {
@@ -94,7 +96,7 @@ class Buffer {
         break;
       default:
         throw InvalidTypeError(
-            'The first argument must be one of type String, Buffer, Uint8List or int. Received type ${value.runtimeType}');
+            'The first argument must be one of type String, Buffer, Uint8List, List<int> or int. Received type ${value.runtimeType}');
     }
   }
 
@@ -352,7 +354,7 @@ class Buffer {
       }
 
       final remaining = this.length - offset;
-      if (length == null || length > remaining) {
+      if (length > remaining) {
         length = remaining;
       }
 
@@ -745,5 +747,45 @@ class Buffer {
     }
 
     return len;
+  }
+
+  //*! read int methods
+  int readUIntLE(int offset, int byteLength, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    byteLength = byteLength >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, byteLength, length);
+    }
+
+    int val = this[offset];
+    int mul = 1;
+    int i = 0;
+    while (++i < byteLength && (mul *= 0x100) != 0) {
+      val += this[offset + i] * mul as int;
+    }
+
+    return val;
+  }
+
+  int readUIntBE(int offset, int byteLength, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    byteLength = byteLength >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, byteLength, length);
+    }
+
+    int val = this[offset + --byteLength];
+    int mul = 1;
+    while (byteLength > 0 && (mul *= 0x100) != 0) {
+      val += this[offset + --byteLength] * mul as int;
+    }
+
+    return val;
+  }
+
+  int readUInt8(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) checkOffset(offset, 1, length);
+    return this[offset];
   }
 }
