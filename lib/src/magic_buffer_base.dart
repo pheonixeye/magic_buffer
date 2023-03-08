@@ -18,7 +18,7 @@ Buffer createBuffer(int length) {
   return Buffer(_buf);
 }
 
-int _byteLength(dynamic value,
+int byteLength(dynamic value,
     [String encoding = 'utf8', bool mustMatch = true]) {
   if (value is String) {
     return value.length;
@@ -192,9 +192,7 @@ class Buffer {
       // Only pay attention to encoding if it's a string. This
       // prevents accidentally sending in a number that would
       // be interpreted as a start offset.
-      return encoding is String
-          ? createBuffer(size).fill(fill, 0, 0, encoding)
-          : createBuffer(size).fill(fill);
+      return createBuffer(size).fill(fill);
     }
     return createBuffer(size);
   }
