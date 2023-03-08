@@ -79,25 +79,19 @@ class Buffer {
   Buffer(dynamic value,
       [int length = 0, int offset = 0, String encoding = 'utf8'])
       : _encoding = encoding {
-    switch (value.runtimeType) {
-      case int:
-        _buf = Uint8List(value as int);
-        break;
-      case Uint8List:
-        _buf = Uint8List.fromList(value as Uint8List);
-        break;
-      case List<int>:
-        _buf = Uint8List.fromList(value as List<int>);
-        break;
-      case Buffer:
-        _buf = (value as Buffer)._buf;
-        break;
-      case String:
-        _buf = Buffer.fromString(value as String)._buf;
-        break;
-      default:
-        throw InvalidTypeError(
-            'The first argument must be one of type String, Buffer, Uint8List, List<int> or int. Received type ${value.runtimeType}');
+    if (value is int) {
+      _buf = Uint8List(value);
+    } else if (value is Uint8List) {
+      _buf = value;
+    } else if (value is List<int>) {
+      _buf = Uint8List.fromList(value);
+    } else if (value is Buffer) {
+      _buf = value._buf;
+    } else if (value is String) {
+      _buf = Buffer.fromString(value)._buf;
+    } else {
+      throw InvalidTypeError(
+          'The first argument must be one of type String, Buffer, Uint8List, List<int> or int. Received type ${value.runtimeType}');
     }
   }
 
