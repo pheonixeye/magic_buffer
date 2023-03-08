@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:ieee754_dart/ieee754_dart.dart';
 import 'package:magic_buffer/src/annotations.dart';
 import 'package:magic_buffer/src/errors.dart';
 import 'package:magic_buffer/src/helper_functions.dart';
@@ -787,5 +788,604 @@ class Buffer {
     offset = offset >>> 0;
     if (!noAssert) checkOffset(offset, 1, length);
     return this[offset];
+  }
+
+  int readUInt16LE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 2, length);
+    }
+    return this[offset] | (this[offset + 1] << 8);
+  }
+
+  int readUInt16BE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 2, length);
+    }
+    return (this[offset] << 8) | this[offset + 1];
+  }
+
+  int readUInt32LE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 4, length);
+    }
+
+    return ((this[offset]) |
+            (this[offset + 1] << 8) |
+            (this[offset + 2] << 16)) +
+        (this[offset + 3] * 0x1000000);
+  }
+
+  int readUInt32BE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 4, length);
+    }
+    return (this[offset] * 0x1000000) +
+        ((this[offset + 1] << 16) | (this[offset + 2] << 8) | this[offset + 3]);
+  }
+
+  int readIntLE(int offset, int byteLength, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    byteLength = byteLength >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, byteLength, length);
+    }
+
+    int val = this[offset];
+    int mul = 1;
+    int i = 0;
+    while (++i < byteLength && (mul *= 0x100) != 0) {
+      val += this[offset + i] * mul as int;
+    }
+    mul *= 0x80;
+
+    if (val >= mul) val -= pow(2, 8 * byteLength) as int;
+
+    return val;
+  }
+
+  int readIntBE(int offset, int byteLength, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    byteLength = byteLength >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, byteLength, length);
+    }
+
+    int i = byteLength;
+    int mul = 1;
+    int val = this[offset + --i];
+    while (i > 0 && (mul *= 0x100) != 0) {
+      val += this[offset + --i] * mul as int;
+    }
+    mul *= 0x80;
+
+    if (val >= mul) {
+      val -= pow(2, 8 * byteLength) as int;
+    }
+
+    return val;
+  }
+
+  int readInt8(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 1, length);
+    }
+    if (!(this[offset] & 0x80)) {
+      return (this[offset]);
+    }
+    return ((0xff - this[offset] + 1) * -1) as int;
+  }
+
+  int readInt16LE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 2, length);
+    }
+    final val = this[offset] | (this[offset + 1] << 8);
+    return (val & 0x8000) ? val | 0xFFFF0000 : val;
+  }
+
+  int readInt16BE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 2, length);
+    }
+    final val = this[offset + 1] | (this[offset] << 8);
+    return (val & 0x8000) ? val | 0xFFFF0000 : val;
+  }
+
+  int readInt32LE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 4, length);
+    }
+
+    return (this[offset]) |
+        (this[offset + 1] << 8) |
+        (this[offset + 2] << 16) |
+        (this[offset + 3] << 24);
+  }
+
+  int readInt32BE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 4, length);
+    }
+
+    return (this[offset] << 24) |
+        (this[offset + 1] << 16) |
+        (this[offset + 2] << 8) |
+        (this[offset + 3]);
+  }
+
+  //* read float & double methods
+  int readFloatLE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 4, length);
+    }
+    return Ieee754.read(_buf, offset, true, 23, 4);
+  }
+
+  readFloatBE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 4, length);
+    }
+    return Ieee754.read(_buf, offset, false, 23, 4);
+  }
+
+  readDoubleLE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 8, length);
+    }
+    return Ieee754.read(_buf, offset, true, 52, 8);
+  }
+
+  readDoubleBE(int offset, [bool noAssert = false]) {
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkOffset(offset, 8, length);
+    }
+    return Ieee754.read(_buf, offset, false, 52, 8);
+  }
+
+  //*write int methods
+  int writeUIntLE(int value, int offset, int byteLength,
+      [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    byteLength = byteLength >>> 0;
+    if (!noAssert) {
+      final maxBytes = pow(2, 8 * byteLength) - 1;
+      checkInt(this, value, offset, byteLength, maxBytes, 0);
+    }
+
+    int mul = 1;
+    int i = 0;
+    this[offset] = value & 0xFF;
+    while (++i < byteLength && (mul *= 0x100) != 0) {
+      this[offset + i] = (value ~/ mul) & 0xFF;
+    }
+
+    return offset + byteLength;
+  }
+
+  int writeUIntBE(int value, int offset, int byteLength,
+      [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    byteLength = byteLength >>> 0;
+    if (!noAssert) {
+      final maxBytes = pow(2, 8 * byteLength) - 1;
+      checkInt(this, value, offset, byteLength, maxBytes, 0);
+    }
+
+    int i = byteLength - 1;
+    int mul = 1;
+    this[offset + i] = value & 0xFF;
+    while (--i >= 0 && (mul *= 0x100) != 0) {
+      this[offset + i] = (value ~/ mul) & 0xFF;
+    }
+
+    return offset + byteLength;
+  }
+
+  int writeUInt8(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 1, 0xff, 0);
+    }
+    this[offset] = (value & 0xff);
+    return offset + 1;
+  }
+
+  int writeUInt16LE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 2, 0xffff, 0);
+    }
+    this[offset] = (value & 0xff);
+    this[offset + 1] = (value >>> 8);
+    return offset + 2;
+  }
+
+  int writeUInt16BE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 2, 0xffff, 0);
+    }
+    this[offset] = (value >>> 8);
+    this[offset + 1] = (value & 0xff);
+    return offset + 2;
+  }
+
+  int writeUInt32LE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 4, 0xffffffff, 0);
+    }
+    this[offset + 3] = (value >>> 24);
+    this[offset + 2] = (value >>> 16);
+    this[offset + 1] = (value >>> 8);
+    this[offset] = (value & 0xff);
+    return offset + 4;
+  }
+
+  int writeUInt32BE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 4, 0xffffffff, 0);
+    }
+    this[offset] = (value >>> 24);
+    this[offset + 1] = (value >>> 16);
+    this[offset + 2] = (value >>> 8);
+    this[offset + 3] = (value & 0xff);
+    return offset + 4;
+  }
+
+  int writeIntLE(int value, int offset, int byteLength,
+      [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      final limit = pow(2, (8 * byteLength) - 1);
+
+      checkInt(this, value, offset, byteLength, limit - 1, -limit);
+    }
+
+    int i = 0;
+    int mul = 1;
+    int sub = 0;
+    this[offset] = value & 0xFF;
+    while (++i < byteLength && (mul *= 0x100) != 0) {
+      if (value < 0 && sub == 0 && this[offset + i - 1] != 0) {
+        sub = 1;
+      }
+      this[offset + i] = ((value ~/ mul) >> 0) - sub & 0xFF;
+    }
+
+    return offset + byteLength;
+  }
+
+  int writeIntBE(int value, int offset, int byteLength,
+      [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      final limit = pow(2, (8 * byteLength) - 1);
+
+      checkInt(this, value, offset, byteLength, limit - 1, -limit);
+    }
+
+    int i = byteLength - 1;
+    int mul = 1;
+    int sub = 0;
+    this[offset + i] = value & 0xFF;
+    while (--i >= 0 && (mul *= 0x100) != 0) {
+      if (value < 0 && sub == 0 && this[offset + i + 1] != 0) {
+        sub = 1;
+      }
+      this[offset + i] = ((value ~/ mul) >> 0) - sub & 0xFF;
+    }
+
+    return offset + byteLength;
+  }
+
+  int writeInt8(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 1, 0x7f, -0x80);
+    }
+    if (value < 0) {
+      value = 0xff + value + 1;
+    }
+    this[offset] = (value & 0xff);
+    return offset + 1;
+  }
+
+  int writeInt16LE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+    }
+    this[offset] = (value & 0xff);
+    this[offset + 1] = (value >>> 8);
+    return offset + 2;
+  }
+
+  int writeInt16BE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 2, 0x7fff, -0x8000);
+    }
+    this[offset] = (value >>> 8);
+    this[offset + 1] = (value & 0xff);
+    return offset + 2;
+  }
+
+  int writeInt32LE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+    }
+    this[offset] = (value & 0xff);
+    this[offset + 1] = (value >>> 8);
+    this[offset + 2] = (value >>> 16);
+    this[offset + 3] = (value >>> 24);
+    return offset + 4;
+  }
+
+  int writeInt32BE(int value, int offset, [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000);
+    }
+    if (value < 0) {
+      value = 0xffffffff + value + 1;
+    }
+    this[offset] = (value >>> 24);
+    this[offset + 1] = (value >>> 16);
+    this[offset + 2] = (value >>> 8);
+    this[offset + 3] = (value & 0xff);
+    return offset + 4;
+  }
+
+  //* write float & double methods
+  void checkIEEE754(
+      Buffer buf, int value, int offset, int ext, double max, double min) {
+    if (offset + ext > buf.length) throw RangeError('Index out of range');
+    if (offset < 0) throw RangeError('Index out of range');
+  }
+
+  int writeFloat(Buffer buf, int value, int offset, bool littleEndian,
+      [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38,
+          -3.4028234663852886e+38);
+    }
+    Ieee754.write(buf._buf, value, offset, littleEndian, 23, 4);
+    return offset + 4;
+  }
+
+  int writeDouble(Buffer buf, int value, int offset, bool littleEndian,
+      [bool noAssert = false]) {
+    value = value.abs();
+    offset = offset >>> 0;
+    if (!noAssert) {
+      checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308,
+          -1.7976931348623157E+308);
+    }
+    Ieee754.write(buf._buf, value, offset, littleEndian, 52, 8);
+    return offset + 8;
+  }
+
+  writeFloatLE(int value, int offset, [bool noAssert = false]) {
+    return writeFloat(this, value, offset, true, noAssert);
+  }
+
+  writeFloatBE(int value, int offset, [bool noAssert = false]) {
+    return writeFloat(this, value, offset, false, noAssert);
+  }
+
+  writeDoubleLE(int value, int offset, [bool noAssert = false]) {
+    return writeDouble(this, value, offset, true, noAssert);
+  }
+
+  writeDoubleBE(int value, int offset, [bool noAssert = false]) {
+    return writeDouble(this, value, offset, false, noAssert);
+  }
+
+  //* read big int methods
+
+  BigInt readBigUInt64LE(int offset) {
+    offset = offset >>> 0;
+    validateNumber(offset, 'offset');
+    final first = this[offset];
+    final last = this[offset + 7];
+    if (first == null || last == null) {
+      boundsError(offset, length - 8);
+    }
+
+    final lo = first +
+        this[++offset] * pow(2, 8) +
+        this[++offset] * pow(2, 16) +
+        this[++offset] * pow(2, 24);
+
+    final hi = this[++offset] +
+        this[++offset] * pow(2, 8) +
+        this[++offset] * pow(2, 16) +
+        last * pow(2, 24);
+
+    return BigInt.from(lo) + (BigInt.from(hi) << BigInt.from(32).toInt());
+  }
+
+  BigInt readBigUInt64BE(int offset) {
+    offset = offset >>> 0;
+    validateNumber(offset, 'offset');
+    final first = this[offset];
+    final last = this[offset + 7];
+    if (first == null || last == null) {
+      boundsError(offset, length - 8);
+    }
+
+    final hi = first * pow(2, 24) +
+        this[++offset] * pow(2, 16) +
+        this[++offset] * pow(2, 8) +
+        this[++offset];
+
+    final lo = this[++offset] * pow(2, 24) +
+        this[++offset] * pow(2, 16) +
+        this[++offset] * pow(2, 8) +
+        last;
+
+    return (BigInt.from(hi) << BigInt.from(32).toInt()) + BigInt.from(lo);
+  }
+
+  BigInt readBigInt64LE(int offset) {
+    offset = offset >>> 0;
+    validateNumber(offset, 'offset');
+    final first = this[offset];
+    final last = this[offset + 7];
+    if (first == null || last == null) {
+      boundsError(offset, length - 8);
+    }
+
+    final val = this[offset + 4] +
+        this[offset + 5] * pow(2, 8) +
+        this[offset + 6] * pow(2, 16) +
+        (last << 24); // Overflow
+
+    return (BigInt.from(val) << BigInt.from(32).toInt()) +
+        BigInt.from(first +
+            this[++offset] * pow(2, 8) +
+            this[++offset] * pow(2, 16) +
+            this[++offset] * pow(2, 24));
+  }
+
+  BigInt readBigInt64BE(int offset) {
+    offset = offset >>> 0;
+    validateNumber(offset, 'offset');
+    final first = this[offset];
+    final last = this[offset + 7];
+    if (first == null || last == null) {
+      boundsError(offset, length - 8);
+    }
+
+    final val = (first << 24) + // Overflow
+        this[++offset] * pow(2, 16) +
+        this[++offset] * pow(2, 8) +
+        this[++offset];
+
+    return (BigInt.from(val) << BigInt.from(32).toInt()) +
+        BigInt.from(this[++offset] * pow(2, 24) +
+            this[++offset] * pow(2, 16) +
+            this[++offset] * pow(2, 8) +
+            last);
+  }
+
+  //* write bigInt methods
+
+  int wrtBigUInt64LE(Buffer buf, int value, int offset, int min, int max) {
+    checkIntBI(value, min, max, buf, offset, 7);
+
+    int lo = value & BigInt.from(0xffffffff).toInt();
+    buf[offset++] = lo;
+    lo = lo >> 8;
+    buf[offset++] = lo;
+    lo = lo >> 8;
+    buf[offset++] = lo;
+    lo = lo >> 8;
+    buf[offset++] = lo;
+    int hi =
+        (value >> BigInt.from(32).toInt() & BigInt.from(0xffffffff).toInt());
+    buf[offset++] = hi;
+    hi = hi >> 8;
+    buf[offset++] = hi;
+    hi = hi >> 8;
+    buf[offset++] = hi;
+    hi = hi >> 8;
+    buf[offset++] = hi;
+    return offset;
+  }
+
+  int wrtBigUInt64BE(Buffer buf, int value, int offset, int min, int max) {
+    checkIntBI(value, min, max, buf, offset, 7);
+
+    int lo = (value & BigInt.from(0xffffffff).toInt());
+    buf[offset + 7] = lo;
+    lo = lo >> 8;
+    buf[offset + 6] = lo;
+    lo = lo >> 8;
+    buf[offset + 5] = lo;
+    lo = lo >> 8;
+    buf[offset + 4] = lo;
+    int hi =
+        (value >> BigInt.from(32).toInt() & BigInt.from(0xffffffff).toInt());
+    buf[offset + 3] = hi;
+    hi = hi >> 8;
+    buf[offset + 2] = hi;
+    hi = hi >> 8;
+    buf[offset + 1] = hi;
+    hi = hi >> 8;
+    buf[offset] = hi;
+    return offset + 8;
+  }
+
+  int writeBigUInt64LE(int value, [int offset = 0]) {
+    return wrtBigUInt64LE(
+      this,
+      value,
+      offset,
+      BigInt.from(0).toInt(),
+      BigInt.from(0xffffffffffffffff).toInt(),
+    );
+  }
+
+  int writeBigUInt64BE(int value, [int offset = 0]) {
+    return wrtBigUInt64BE(
+      this,
+      value,
+      offset,
+      BigInt.from(0).toInt(),
+      BigInt.from(0xffffffffffffffff).toInt(),
+    );
+  }
+
+  int writeBigInt64LE(int value, [int offset = 0]) {
+    return wrtBigUInt64LE(
+      this,
+      value,
+      offset,
+      -BigInt.from(0x8000000000000000).toInt(),
+      BigInt.from(0x7fffffffffffffff).toInt(),
+    );
+  }
+
+  int writeBigInt64BE(int value, [int offset = 0]) {
+    return wrtBigUInt64BE(
+      this,
+      value,
+      offset,
+      -BigInt.from(0x8000000000000000).toInt(),
+      BigInt.from(0x7fffffffffffffff).toInt(),
+    );
   }
 }
