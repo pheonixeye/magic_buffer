@@ -1219,12 +1219,12 @@ class Buffer {
 
   //* write float & double methods
   void checkIEEE754(
-      Buffer buf, int value, int offset, int ext, double max, double min) {
+      Buffer buf, double value, int offset, int ext, double max, double min) {
     if (offset + ext > buf.length) throw RangeError('Index out of range');
     if (offset < 0) throw RangeError('Index out of range');
   }
 
-  int writeFloat(Buffer buf, int value, int offset, bool littleEndian,
+  int writeFloat(Buffer buf, double value, int offset, bool littleEndian,
       [bool noAssert = false]) {
     value = value.abs();
     offset = offset >>> 0;
@@ -1236,7 +1236,7 @@ class Buffer {
     return offset + 4;
   }
 
-  int writeDouble(Buffer buf, int value, int offset, bool littleEndian,
+  int writeDouble(Buffer buf, double value, int offset, bool littleEndian,
       [bool noAssert = false]) {
     value = value.abs();
     offset = offset >>> 0;
@@ -1248,19 +1248,19 @@ class Buffer {
     return offset + 8;
   }
 
-  writeFloatLE(int value, int offset, [bool noAssert = false]) {
+  writeFloatLE(double value, int offset, [bool noAssert = false]) {
     return writeFloat(this, value, offset, true, noAssert);
   }
 
-  writeFloatBE(int value, int offset, [bool noAssert = false]) {
+  writeFloatBE(double value, int offset, [bool noAssert = false]) {
     return writeFloat(this, value, offset, false, noAssert);
   }
 
-  writeDoubleLE(int value, int offset, [bool noAssert = false]) {
+  writeDoubleLE(double value, int offset, [bool noAssert = false]) {
     return writeDouble(this, value, offset, true, noAssert);
   }
 
-  writeDoubleBE(int value, int offset, [bool noAssert = false]) {
+  writeDoubleBE(double value, int offset, [bool noAssert = false]) {
     return writeDouble(this, value, offset, false, noAssert);
   }
 
