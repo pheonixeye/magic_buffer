@@ -450,7 +450,7 @@ Buffer fromArrayLike(List<int> array) {
 Buffer fromArrayView(List<int> arrayView) {
   if (arrayView is Uint8List) {
     final copy = Buffer(Uint8List.sublistView(arrayView));
-    return fromArrayBuffer(copy.buffer, copy.offset, copy.byteLength);
+    return fromArrayBuffer(copy.buffer, copy.offset, copy.length);
   }
   return fromArrayLike(arrayView);
 }

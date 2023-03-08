@@ -109,13 +109,64 @@ class Buffer {
   // int byteLength(dynamic value, String encoding) =>
   //     _byteLength(value, encoding);
 
-  int get byteLength => _byteLength(this, _encoding);
+  int get _byteLength => byteLength(this, _encoding);
 
   int get offset => _buf.offsetInBytes;
 
-  int get length => byteLength;
+  int get length => _byteLength;
 
   Uint8List get buffer => _buf;
+
+  static int byteLength(dynamic value,
+      [String encoding = 'utf8', bool mustMatch = true]) {
+    if (value is String) {
+      return value.length;
+    }
+    if (value is Uint8List) {
+      return value.lengthInBytes;
+    }
+    if (value is Buffer) {
+      return value._buf.lengthInBytes;
+    }
+    if (value is! String) {
+      throw InvalidTypeError(
+          'The "value" argument must be one of type String, Buffer, or Uint8List. '
+          'Received type ${value.runtimeTypes}');
+    }
+
+    final len = value.length;
+    if (!mustMatch && len == 0) return 0;
+
+    // Use a for loop to avoid recursion
+    bool loweredCase = false;
+    for (;;) {
+      switch (encoding) {
+        case 'ascii':
+        case 'latin1':
+        case 'binary':
+          return len;
+        case 'utf8':
+        case 'utf-8':
+          return utf8ToBytes(value).length;
+        case 'ucs2':
+        case 'ucs-2':
+        case 'utf16le':
+        case 'utf-16le':
+          return len * 2;
+        case 'hex':
+          return len >>> 1;
+        case 'base64':
+          return base64ToBytes(value).length;
+        default:
+          if (loweredCase) {
+            return mustMatch ? -1 : utf8ToBytes(value).length; // assume utf8
+          }
+          encoding = (encoding).toLowerCase();
+          loweredCase = true;
+      }
+    }
+  }
+
   //*!includes
   bool includes(dynamic val, int byteOffset, String encoding) {
     return indexOf(val, byteOffset, encoding) != -1;
@@ -189,7 +240,7 @@ class Buffer {
       throw InvalidTypeError('Unknown encoding: $encoding');
     }
 
-    final length = _byteLength(string, encoding) | 0;
+    final length = byteLength(string, encoding) | 0;
     var buf = createBuffer(length);
 
     final actual = buf.write(string, encoding: encoding);
@@ -228,7 +279,7 @@ class Buffer {
     }
 
     if (value is Buffer) {
-      return fromArrayBuffer(value._buf, value.offset, value.byteLength);
+      return fromArrayBuffer(value._buf, value.offset, value.length);
     }
 
     if (value is Uint8List) {
@@ -597,7 +648,7 @@ class Buffer {
       target = Buffer.from(target, target.offsetInBytes, target.lengthInBytes);
     }
     if (target is Buffer) {
-      target = Buffer.from(target, target.offset, target.byteLength);
+      target = Buffer.from(target, target.offset, target.length);
     }
     if (!Buffer.isBuffer(target)) {
       throw InvalidTypeError(
