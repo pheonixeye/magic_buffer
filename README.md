@@ -20,10 +20,6 @@ The buffer module from [node.js](https://nodejs.org/).
 - Preserves Node API exactly, with one minor difference (see below)
 - Square-bracket `buf[4]` notation works!
 
-## Getting started
-
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
 
 ## Usage
 
@@ -31,11 +27,6 @@ The module's API is identical to node's `Buffer` API. Read the
 [official docs](https://nodejs.org/api/buffer.html) for the full list of properties,
 instance methods, and class methods that are supported.
 
-## Additional information
-
-TODO: Tell users more about the package: where to find more information, how to 
-contribute to the package, how to file issues, what response they can expect 
-from the package authors, and more.
 
 ## Original Authors
 
