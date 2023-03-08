@@ -13,3 +13,7 @@
 ## 0.0.13
 
 - Bug Fix - re-Modify alloc method.
+
+## 0.0.14
+
+- Bug Fix - change switch to if/else in constructor.

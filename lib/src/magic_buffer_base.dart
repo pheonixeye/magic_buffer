@@ -18,53 +18,49 @@ Buffer createBuffer(int length) {
   return Buffer(_buf);
 }
 
+@DynamicTypeArgument('value', 'String | Buffer | Uint8List')
 int byteLength(dynamic value,
     [String encoding = 'utf8', bool mustMatch = true]) {
-  if (value is String) {
-    return value.length;
-  }
   if (value is Uint8List) {
     return value.lengthInBytes;
-  }
-  if (value is Buffer) {
+  } else if (value is Buffer) {
     return value._buf.lengthInBytes;
-  }
-  if (value is! String) {
+  } else if (value is String) {
+    final len = value.length;
+    if (!mustMatch && len == 0) return 0;
+
+    // Use a for loop to avoid recursion
+    bool loweredCase = false;
+    for (;;) {
+      switch (encoding) {
+        case 'ascii':
+        case 'latin1':
+        case 'binary':
+          return len;
+        case 'utf8':
+        case 'utf-8':
+          return utf8ToBytes(value).length;
+        case 'ucs2':
+        case 'ucs-2':
+        case 'utf16le':
+        case 'utf-16le':
+          return len * 2;
+        case 'hex':
+          return len >>> 1;
+        case 'base64':
+          return base64ToBytes(value).length;
+        default:
+          if (loweredCase) {
+            return mustMatch ? -1 : utf8ToBytes(value).length; // assume utf8
+          }
+          encoding = (encoding).toLowerCase();
+          loweredCase = true;
+      }
+    }
+  } else {
     throw InvalidTypeError(
         'The "value" argument must be one of type String, Buffer, or Uint8List. '
         'Received type ${value.runtimeTypes}');
-  }
-
-  final len = value.length;
-  if (!mustMatch && len == 0) return 0;
-
-  // Use a for loop to avoid recursion
-  bool loweredCase = false;
-  for (;;) {
-    switch (encoding) {
-      case 'ascii':
-      case 'latin1':
-      case 'binary':
-        return len;
-      case 'utf8':
-      case 'utf-8':
-        return utf8ToBytes(value).length;
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return len * 2;
-      case 'hex':
-        return len >>> 1;
-      case 'base64':
-        return base64ToBytes(value).length;
-      default:
-        if (loweredCase) {
-          return mustMatch ? -1 : utf8ToBytes(value).length; // assume utf8
-        }
-        encoding = (encoding).toLowerCase();
-        loweredCase = true;
-    }
   }
 }
 
@@ -356,9 +352,7 @@ class Buffer {
     start = start >>> 0;
     end = end == null ? length : end >>> 0;
 
-    if (!val) {
-      val = 0;
-    }
+    val ??= 0;
 
     int i;
     if (val is int) {
