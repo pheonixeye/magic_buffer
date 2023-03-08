@@ -5,3 +5,11 @@
 ## 0.0.11
 
 - Bug Fix - change read/write float/double methods.
+
+## 0.0.12
+
+- Bug Fix - Modify alloc method.
+
+## 0.0.13
+
+- Bug Fix - re-Modify alloc method.

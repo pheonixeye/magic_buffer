@@ -192,7 +192,7 @@ class Buffer {
       // Only pay attention to encoding if it's a string. This
       // prevents accidentally sending in a number that would
       // be interpreted as a start offset.
-      return createBuffer(size).fill(fill);
+      return createBuffer(size).._buf.fillRange(0, size, fill);
     }
     return createBuffer(size);
   }
