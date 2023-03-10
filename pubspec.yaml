@@ -1,7 +1,7 @@
-name: magic_buffer
+name: magic_buffer_copy
 description: Buffer class JS implementation based on the buffer module from [node.js].The goal is to provide an API that is 100% identical to [node's Buffer API].
-version: 0.0.14
-repository: https://github.com/pheonixeye/magic_buffer.git
+version: 0.0.15
+# repository: https://github.com/pheonixeye/magic_buffer.git
 
 environment:
   sdk: '>=2.19.2 <3.0.0'

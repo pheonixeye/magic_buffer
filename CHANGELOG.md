@@ -17,3 +17,7 @@
 ## 0.0.14
 
 - Bug Fix - change switch to if/else in constructor.
+
+## 0.0.15
+
+- Bug Fix - Modified byteLength Method.

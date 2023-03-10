@@ -2,9 +2,9 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:ieee754_dart/ieee754_dart.dart';
-import 'package:magic_buffer/src/annotations.dart';
-import 'package:magic_buffer/src/errors.dart';
-import 'package:magic_buffer/src/helper_functions.dart';
+import 'package:magic_buffer_copy/src/annotations.dart';
+import 'package:magic_buffer_copy/src/errors.dart';
+import 'package:magic_buffer_copy/src/helper_functions.dart';
 
 import 'constants.dart';
 
@@ -67,14 +67,13 @@ int byteLength(dynamic value,
 class Buffer {
   late Uint8List _buf;
   // ignore: prefer_final_fields
-  late String _encoding;
-  static const bool _isBuffer = true;
+  String encoding;
+  final bool _isBuffer = true;
   static const int poolSize = 8192; // not used by this implementation
 
   @DynamicTypeArgument('value', 'int | Uint8List | List<int> | String | Buffer')
   Buffer(dynamic value,
-      [int length = 0, int offset = 0, String encoding = 'utf8'])
-      : _encoding = encoding {
+      [int length = 0, int offset = 0, this.encoding = 'utf8']) {
     if (value is int) {
       _buf = Uint8List(value);
     } else if (value is Uint8List) {
@@ -84,7 +83,7 @@ class Buffer {
     } else if (value is Buffer) {
       _buf = value._buf;
     } else if (value is String) {
-      _buf = Buffer.fromString(value)._buf;
+      _buf = Buffer.fromString(value, encoding)._buf;
     } else {
       throw InvalidTypeError(
           'The first argument must be one of type String, Buffer, Uint8List, List<int> or int. Received type ${value.runtimeType}');
@@ -96,22 +95,16 @@ class Buffer {
     _buf[index] = value;
   }
 
-  // int byteLength(dynamic value, String encoding) =>
-  //     _byteLength(value, encoding);
-
-  int get _byteLength => byteLength(this, _encoding);
+  // int get _byteLength => byteLength(this, encoding);
 
   int get offset => _buf.offsetInBytes;
 
-  int get length => _byteLength;
+  int get length => _buf.lengthInBytes;
 
   Uint8List get buffer => _buf;
 
   static int byteLength(dynamic value,
       [String encoding = 'utf8', bool mustMatch = true]) {
-    if (value is String) {
-      return value.length;
-    }
     if (value is Uint8List) {
       return value.lengthInBytes;
     }
@@ -123,9 +116,10 @@ class Buffer {
           'The "value" argument must be one of type String, Buffer, or Uint8List. '
           'Received type ${value.runtimeTypes}');
     }
-
     final len = value.length;
-    if (!mustMatch && len == 0) return 0;
+    if (!mustMatch && len == 0) {
+      return 0;
+    }
 
     // Use a for loop to avoid recursion
     bool loweredCase = false;
@@ -219,10 +213,8 @@ class Buffer {
   }
 
   //*!fromString method
-  static Buffer fromString(String string, [String encoding = '']) {
-    if (encoding == '') {
-      encoding = 'utf8';
-    }
+  static Buffer fromString(String string, [String? encoding]) {
+    encoding ??= 'utf8';
 
     if (!Buffer.isEncoding(encoding)) {
       throw InvalidTypeError('Unknown encoding: $encoding');
@@ -260,18 +252,22 @@ class Buffer {
     }
 
     if (value is List<int>) {
-      return fromArrayLike(value);
+      // return fromArrayLike(value);
+      return Buffer(value);
     }
     if (value is Iterable<int>) {
-      return fromArrayLike(value.toList());
+      // return fromArrayLike(value.toList());
+      return Buffer(value.toList());
     }
 
     if (value is Buffer) {
-      return fromArrayBuffer(value._buf, value.offset, value.length);
+      // return fromArrayBuffer(value._buf, value.offset, value.length);
+      return Buffer(value._buf);
     }
 
     if (value is Uint8List) {
-      return fromArrayBuffer(value, offset, length);
+      // return fromArrayBuffer(value, offset, length);
+      return Buffer(value);
     }
     if (value == null) {
       throw InvalidTypeError(
@@ -376,7 +372,7 @@ class Buffer {
   }
 
   //*!write method
-  write(String string,
+  int write(String string,
       {int offset = 0, int? length, String encoding = 'utf8'}) {
     // Buffer#write(string)
     if (length == null) {
@@ -390,49 +386,49 @@ class Buffer {
         throw ArgumentError(
             'Buffer.write(string, encoding, offset[, length]) is no longer supported');
       }
+    }
 
-      final remaining = this.length - offset;
-      if (length > remaining) {
-        length = remaining;
-      }
+    final remaining = this.length - offset;
+    if (length == null || length > remaining) {
+      length = remaining;
+    }
 
-      if ((string.isNotEmpty && (length < 0 || offset < 0)) ||
-          offset > this.length) {
-        throw RangeError('Attempt to write outside buffer bounds');
-      }
+    if ((string.isNotEmpty && (length < 0 || offset < 0)) ||
+        offset > this.length) {
+      throw RangeError('Attempt to write outside buffer bounds');
+    }
 
-      bool loweredCase = false;
-      for (;;) {
-        switch (encoding) {
-          case 'hex':
-            return hexWrite(this, string, offset, length);
+    bool loweredCase = false;
+    for (;;) {
+      switch (encoding) {
+        case 'hex':
+          return hexWrite(this, string, offset, length);
 
-          case 'utf8':
-          case 'utf-8':
-            return utf8Write(this, string, offset, length);
+        case 'utf8':
+        case 'utf-8':
+          return utf8Write(this, string, offset, length);
 
-          case 'ascii':
-          case 'latin1':
-          case 'binary':
-            return asciiWrite(this, string, offset, length);
+        case 'ascii':
+        case 'latin1':
+        case 'binary':
+          return asciiWrite(this, string, offset, length);
 
-          case 'base64':
-            // Warning: maxLength not taken into account in base64Write
-            return base64Write(this, string, offset, length);
+        case 'base64':
+          // Warning: maxLength not taken into account in base64Write
+          return base64Write(this, string, offset, length);
 
-          case 'ucs2':
-          case 'ucs-2':
-          case 'utf16le':
-          case 'utf-16le':
-            return ucs2Write(this, string, offset, length);
+        case 'ucs2':
+        case 'ucs-2':
+        case 'utf16le':
+        case 'utf-16le':
+          return ucs2Write(this, string, offset, length);
 
-          default:
-            if (loweredCase) {
-              throw InvalidTypeError('Unknown encoding: $encoding');
-            }
-            encoding = encoding.toLowerCase();
-            loweredCase = true;
-        }
+        default:
+          if (loweredCase) {
+            throw InvalidTypeError('Unknown encoding: $encoding');
+          }
+          encoding = encoding.toLowerCase();
+          loweredCase = true;
       }
     }
   }
@@ -691,36 +687,24 @@ class Buffer {
   }
 
   //*! concat
-  static Buffer concat(List<Buffer> list, [int? length]) {
+  //? tested - passed
+  static Buffer concat(List<Buffer> list, [int length = 0]) {
     if (list.isEmpty) {
       return Buffer.alloc(0);
     }
 
     int i;
-    if (length == null) {
-      length = 0;
+    if (length == 0) {
       for (i = 0; i < list.length; ++i) {
-        length = length! + list[i].length;
+        length = length + list[i].length;
       }
     }
 
-    Buffer buffer = Buffer.allocUnsafe(length!);
+    Buffer buffer = Buffer.allocUnsafe(length);
     int pos = 0;
     for (i = 0; i < list.length; ++i) {
-      Buffer? buf = list[i];
-      if (Buffer.isBuffer(buf)) {
-        if (pos + buf.length > buffer.length) {
-          if (!Buffer.isBuffer(buf)) {
-            buf = Buffer.from(buf);
-          }
-          buf.copy(buffer, pos);
-        } else {
-          // Uint8Array.prototype.set.call(buffer, buf, pos);
-          buffer = Buffer.from(buf, pos);
-        }
-      } else if (!Buffer.isBuffer(buf)) {
-        throw InvalidTypeError('"list" argument must be an Array of Buffers');
-      } else {
+      Buffer buf = list[i];
+      if (pos + buf.length > buffer.length) {
         buf.copy(buffer, pos);
       }
       pos += buf.length;
@@ -730,11 +714,12 @@ class Buffer {
 
   //* copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
   //*!copy
+  //? tested - passed
   int copy(Buffer target, [int targetStart = 0, int start = 0, int end = 0]) {
     if (!Buffer.isBuffer(target)) {
       throw InvalidTypeError('argument should be a Buffer');
     }
-    if (end != 0) {
+    if (end == 0) {
       end = length;
     }
     if (targetStart >= target.length) {
@@ -774,15 +759,10 @@ class Buffer {
 
     final len = end - start;
 
-    if (this == target) {
-      // Use built-in when available, missing from IE11
-      // this.copyWithin(targetStart, start, end);
-      _buf.setAll(targetStart, _buf.sublist(start, end));
-    } else {
-      // Uint8Array.prototype.set
-      //     .call(target, this.subarray(start, end), targetStart);
-      target = Buffer(target._buf.sublist(start, end), targetStart);
-    }
+    final targetList = target._buf;
+    final thisList = _buf;
+
+    thisList.setRange(start, end, targetList.sublist(targetStart));
 
     return len;
   }
