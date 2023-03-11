@@ -20,7 +20,7 @@ void main() {
       expect(buffer.length, 10);
     });
     test('buffer constructor init<Buffer>', () {
-      final testBuffer = Buffer('Dartedious', 0, 0, 'utf8');
+      final testBuffer = Buffer('Dartedious', 'utf8');
       final buffer = Buffer(testBuffer);
       expect(buffer.length, 10);
     });
@@ -32,7 +32,7 @@ void main() {
       expect(Buffer.byteLength(buffer), 10);
     });
     test('static byteLength ucs2 encoding', () {
-      final buffer = Buffer('DarTedious', 0, 0, 'ucs2');
+      final buffer = Buffer('DarTedious', 'ucs2');
       expect(Buffer.byteLength(buffer, 'ucs2'), 20);
     });
   });
@@ -87,7 +87,7 @@ void main() {
       expect(buffer.length, 20);
       expect(buffer.buffer, uint8List);
     });
-    test('Buffer.concat()', () {
+    test('Buffer.concat() ==>> length', () {
       int i = 0;
       for (var j = 0; j < 10; j++) {
         i += j;
@@ -102,12 +102,51 @@ void main() {
       final buffer = Buffer.concat(list_);
       expect(buffer.length, i);
     });
+    test('Buffer.concat() ==>> content', () {
+      final uin8List1 = Uint8List(5);
+      uin8List1.setAll(0, [0, 1, 2, 3, 4]);
+      final uin8List2 = Uint8List(5);
+      uin8List1.setAll(0, [5, 6, 7, 8, 9]);
+      var b1 = Buffer(uin8List1);
+      var b2 = Buffer(uin8List2);
+      b1 = Buffer.concat([b1, b2]);
+      expect(b1.buffer, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    });
     test('buffer.copy()', () {
       final buffer = Buffer(Uint8List.fromList([0, 1, 2, 3, 4, 5]));
       final buffer2 = Buffer(Uint8List.fromList([6, 7, 8, 9]));
       buffer.copy(buffer2, 0, 0);
       print(buffer.buffer);
       expect(buffer.buffer, [6, 7, 8, 9, 4, 5]);
+    });
+    test('Buffer.from()', () {
+      final buffer = Buffer.from(Uint8List.fromList([0, 1, 2, 3, 4, 5]));
+      final buffer2 = Buffer.from([6, 7, 8, 9]);
+      buffer.copy(buffer2, 0, 0);
+      print(buffer.buffer);
+      expect(buffer.buffer, [6, 7, 8, 9, 4, 5]);
+    });
+    test('buffer.slice()', () {
+      final buffer = Buffer.from(Uint8List.fromList([0, 1, 2, 3, 4]));
+      final sliced = buffer.slice(1, 3);
+      print(sliced.buffer);
+      expect(sliced.buffer, [1, 2]);
+    });
+  });
+
+  group('operators', () {
+    test('[]', () {
+      final uint8List = Uint8List.fromList([0, 1, 2, 3, 4, 5]);
+      final buffer = Buffer(uint8List);
+      final selected = buffer[3];
+      expect(selected, 3);
+    });
+    test('[]=', () {
+      final uint8List = Uint8List.fromList([0, 1, 2, 3, 4, 5]);
+      final buffer = Buffer(uint8List);
+      buffer[3] = 9;
+      expect(buffer[3], 9);
+      expect(buffer.buffer, [0, 1, 2, 9, 4, 5]);
     });
   });
 }

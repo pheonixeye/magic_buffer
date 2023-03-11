@@ -430,9 +430,13 @@ Buffer fromArrayBuffer(Uint8List array, [int byteOffset = 0, int length = 0]) {
   if (byteOffset == 0 && length == 0) {
     buf = Buffer(Uint8List.fromList(array));
   } else if (length == 0) {
-    buf = Buffer(Uint8List.sublistView(array, byteOffset));
+    final l = Uint8List(array.length);
+    l.setAll(byteOffset, array);
+    buf = Buffer(l);
   } else {
-    buf = Buffer(Uint8List.sublistView(array, byteOffset, length));
+    final l = Uint8List(length);
+    l.setAll(byteOffset, array);
+    buf = Buffer(l);
   }
   return buf;
 }

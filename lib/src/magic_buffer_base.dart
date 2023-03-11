@@ -72,16 +72,15 @@ class Buffer {
   static const int poolSize = 8192; // not used by this implementation
 
   @DynamicTypeArgument('value', 'int | Uint8List | List<int> | String | Buffer')
-  Buffer(dynamic value,
-      [int length = 0, int offset = 0, this.encoding = 'utf8']) {
+  Buffer(dynamic value, [this.encoding = 'utf8']) {
     if (value is int) {
       _buf = Uint8List(value);
     } else if (value is Uint8List) {
-      _buf = value;
+      _buf = Uint8List.fromList(value);
     } else if (value is List<int>) {
       _buf = Uint8List.fromList(value);
     } else if (value is Buffer) {
-      _buf = value._buf;
+      _buf = Uint8List.fromList(value._buf);
     } else if (value is String) {
       _buf = Buffer.fromString(value, encoding)._buf;
     } else {
@@ -90,6 +89,7 @@ class Buffer {
     }
   }
 
+  //?tested - passed
   operator [](int index) => _buf[index];
   operator []=(int index, int value) {
     _buf[index] = value;
@@ -213,6 +213,7 @@ class Buffer {
   }
 
   //*!fromString method
+  //? tested - passed
   static Buffer fromString(String string, [String? encoding]) {
     encoding ??= 'utf8';
 
@@ -238,13 +239,13 @@ class Buffer {
   //*!slowBuffer method
   Buffer slowBuffer(int length) {
     if (length.abs() != length) {
-      // eslint-disable-line eqeqeq
       length = 0;
     }
     return Buffer.alloc(length.abs());
   }
 
   //*!from method
+  //? tested - passed
   static Buffer from(dynamic value,
       [int offset = 0, int length = 0, String encoding = 'utf8']) {
     if (value is String) {
@@ -252,22 +253,22 @@ class Buffer {
     }
 
     if (value is List<int>) {
-      // return fromArrayLike(value);
-      return Buffer(value);
+      return fromArrayLike(value);
+      // return Buffer(value);
     }
     if (value is Iterable<int>) {
-      // return fromArrayLike(value.toList());
-      return Buffer(value.toList());
+      return fromArrayLike(value.toList());
+      // return Buffer(value.toList());
     }
 
     if (value is Buffer) {
-      // return fromArrayBuffer(value._buf, value.offset, value.length);
-      return Buffer(value._buf);
+      return fromArrayBuffer(value._buf, value.offset, value.length);
+      // return Buffer(value._buf);
     }
 
     if (value is Uint8List) {
-      // return fromArrayBuffer(value, offset, length);
-      return Buffer(value);
+      return fromArrayBuffer(value, offset, length);
+      // return Buffer(value);
     }
     if (value == null) {
       throw InvalidTypeError(
@@ -279,7 +280,7 @@ class Buffer {
   }
 
   //*! slice method
-  Buffer slice(int start, int? end) {
+  Buffer slice(int start, [int? end]) {
     final len = length;
     start = ~~start;
     end = end == null ? len : ~~end;
@@ -305,11 +306,7 @@ class Buffer {
     if (end < start) {
       end = start;
     }
-
     final newBuf = Buffer(_buf.sublist(start, end));
-    // this.subarray(start, end);
-    // Return an augmented `Uint8Array` instance
-    // Object.setPrototypeOf(newBuf, Buffer.prototype)
 
     return newBuf;
   }
@@ -687,7 +684,7 @@ class Buffer {
   }
 
   //*! concat
-  //? tested - passed
+  //? tested - failed
   static Buffer concat(List<Buffer> list, [int length = 0]) {
     if (list.isEmpty) {
       return Buffer.alloc(0);
@@ -702,15 +699,39 @@ class Buffer {
 
     Buffer buffer = Buffer.allocUnsafe(length);
     int pos = 0;
-    for (i = 0; i < list.length; ++i) {
-      Buffer buf = list[i];
-      if (pos + buf.length > buffer.length) {
-        buf.copy(buffer, pos);
-      }
-      pos += buf.length;
+    for (int i = 0; i < list.length; ++i) {
+      final buf = list[i];
+      final buflen = buf.length;
+      buffer._buf.setAll(pos, list[i]._buf);
+      pos += buflen;
     }
     return buffer;
   }
+  // //*! concat
+  // //? tested - passed
+  // static Buffer concat(List<Buffer> list, [int length = 0]) {
+  //   if (list.isEmpty) {
+  //     return Buffer.alloc(0);
+  //   }
+
+  //   int i;
+  //   if (length == 0) {
+  //     for (i = 0; i < list.length; ++i) {
+  //       length = length + list[i].length;
+  //     }
+  //   }
+
+  //   Buffer buffer = Buffer.allocUnsafe(length);
+  //   int pos = 0;
+  //   for (i = 0; i < list.length; ++i) {
+  //     Buffer buf = list[i];
+  //     if (pos + buf.length > buffer.length) {
+  //       buf.copy(buffer, pos);
+  //     }
+  //     pos += buf.length;
+  //   }
+  //   return buffer;
+  // }
 
   //* copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
   //*!copy
