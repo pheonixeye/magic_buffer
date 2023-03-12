@@ -106,10 +106,12 @@ void main() {
       final uin8List1 = Uint8List(5);
       uin8List1.setAll(0, [0, 1, 2, 3, 4]);
       final uin8List2 = Uint8List(5);
-      uin8List1.setAll(0, [5, 6, 7, 8, 9]);
+      uin8List2.setAll(0, [5, 6, 7, 8, 9]);
       var b1 = Buffer(uin8List1);
       var b2 = Buffer(uin8List2);
       b1 = Buffer.concat([b1, b2]);
+      print('b1.buffer');
+      print(b1.buffer);
       expect(b1.buffer, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     });
     test('buffer.copy()', () {

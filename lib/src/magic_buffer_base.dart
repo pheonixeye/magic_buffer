@@ -702,7 +702,8 @@ class Buffer {
     for (int i = 0; i < list.length; ++i) {
       final buf = list[i];
       final buflen = buf.length;
-      buffer._buf.setAll(pos, list[i]._buf);
+      // buffer.copy(buf, pos);
+      buffer._buf.setAll(pos, buf._buf);
       pos += buflen;
     }
     return buffer;
@@ -1000,7 +1001,7 @@ class Buffer {
     offset = offset >>> 0;
     byteLength = byteLength >>> 0;
     if (!noAssert) {
-      final maxBytes = pow(2, 8 * byteLength) - 1;
+      final maxBytes = pow(2, 8 * byteLength) - 1 as int;
       checkInt(this, value, offset, byteLength, maxBytes, 0);
     }
 
@@ -1020,7 +1021,7 @@ class Buffer {
     offset = offset >>> 0;
     byteLength = byteLength >>> 0;
     if (!noAssert) {
-      final maxBytes = pow(2, 8 * byteLength) - 1;
+      final maxBytes = pow(2, 8 * byteLength) - 1 as int;
       checkInt(this, value, offset, byteLength, maxBytes, 0);
     }
 
@@ -1097,7 +1098,7 @@ class Buffer {
     value = value.abs();
     offset = offset >>> 0;
     if (!noAssert) {
-      final limit = pow(2, (8 * byteLength) - 1);
+      final limit = pow(2, (8 * byteLength) - 1) as int;
 
       checkInt(this, value, offset, byteLength, limit - 1, -limit);
     }
@@ -1121,7 +1122,7 @@ class Buffer {
     value = value.abs();
     offset = offset >>> 0;
     if (!noAssert) {
-      final limit = pow(2, (8 * byteLength) - 1);
+      final limit = pow(2, (8 * byteLength) - 1) as int;
 
       checkInt(this, value, offset, byteLength, limit - 1, -limit);
     }

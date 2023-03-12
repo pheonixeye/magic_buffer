@@ -461,7 +461,7 @@ Buffer fromArrayView(List<int> arrayView) {
 }
 
 //check functions
-void checkInt(buf, value, offset, ext, max, min) {
+void checkInt(Buffer buf, int value, int offset, int ext, int max, int min) {
   if (!Buffer.isBuffer(buf)) {
     throw InvalidTypeError('"buffer" argument must be a Buffer instance');
   }
