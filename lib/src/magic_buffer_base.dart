@@ -683,33 +683,39 @@ class Buffer {
     return 0;
   }
 
-  //*! concat
-  //? tested - failed
   static Buffer concat(List<Buffer> list, [int length = 0]) {
     if (list.isEmpty) {
-      return Buffer.alloc(0);
+      return Buffer(0);
     }
 
-    int i;
-    if (length == 0) {
-      for (i = 0; i < list.length; ++i) {
-        length = length + list[i].length;
+    for (final buf in list) {
+      length += buf.length;
+    }
+
+    final buffer = Buffer(length);
+    var pos = 0;
+    for (var buf in list) {
+      if (buf is Buffer) {
+        if (pos + buf.length > buffer.length) {
+          if (buf is! Buffer) {
+            buf = Buffer(buf);
+          }
+          buffer._buf.setRange(pos, buffer.length, buf._buf);
+        } else {
+          buffer._buf.setRange(pos, pos + buf.length, buf._buf);
+        }
+      } else if (buf is! Uint8List) {
+        throw InvalidTypeError('list argument must be a List of Uint8List');
+      } else {
+        buffer._buf.setRange(pos, pos + buf.length, buf._buf);
       }
-    }
-
-    Buffer buffer = Buffer.allocUnsafe(length);
-    int pos = 0;
-    for (int i = 0; i < list.length; ++i) {
-      final buf = list[i];
-      final buflen = buf.length;
-      // buffer.copy(buf, pos);
-      buffer._buf.setAll(pos, buf._buf);
-      pos += buflen;
+      pos += buf.length;
     }
     return buffer;
   }
+
   // //*! concat
-  // //? tested - passed
+  // //? tested - failed
   // static Buffer concat(List<Buffer> list, [int length = 0]) {
   //   if (list.isEmpty) {
   //     return Buffer.alloc(0);
@@ -724,12 +730,12 @@ class Buffer {
 
   //   Buffer buffer = Buffer.allocUnsafe(length);
   //   int pos = 0;
-  //   for (i = 0; i < list.length; ++i) {
-  //     Buffer buf = list[i];
-  //     if (pos + buf.length > buffer.length) {
-  //       buf.copy(buffer, pos);
-  //     }
-  //     pos += buf.length;
+  //   for (int i = 0; i < list.length; ++i) {
+  //     final buf = list[i];
+  //     final buflen = buf.length;
+  //     // buffer.copy(buf, pos);
+  //     buffer._buf.setAll(pos, buf._buf);
+  //     pos += buflen;
   //   }
   //   return buffer;
   // }
@@ -781,10 +787,8 @@ class Buffer {
 
     final len = end - start;
 
-    final targetList = target._buf;
-    final thisList = _buf;
-
-    thisList.setRange(start, end, targetList.sublist(targetStart));
+    target._buf
+        .setRange(targetStart, targetStart + len, _buf.sublist(start, end));
 
     return len;
   }

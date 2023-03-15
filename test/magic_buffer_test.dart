@@ -114,20 +114,17 @@ void main() {
       print(b1.buffer);
       expect(b1.buffer, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     });
+
     test('buffer.copy()', () {
-      final buffer = Buffer(Uint8List.fromList([0, 1, 2, 3, 4, 5]));
-      final buffer2 = Buffer(Uint8List.fromList([6, 7, 8, 9]));
-      buffer.copy(buffer2, 0, 0);
-      print(buffer.buffer);
-      expect(buffer.buffer, [6, 7, 8, 9, 4, 5]);
+      final b1 = Buffer(Uint8List.fromList([1, 2, 3, 4, 5]));
+      final b2 = Buffer(Uint8List(3));
+
+      final len = b1.copy(b2, 0, 1, 4);
+
+      expect(len, equals(3));
+      expect(b2.buffer, equals(Buffer(Uint8List.fromList([2, 3, 4])).buffer));
     });
-    test('Buffer.from()', () {
-      final buffer = Buffer.from(Uint8List.fromList([0, 1, 2, 3, 4, 5]));
-      final buffer2 = Buffer.from([6, 7, 8, 9]);
-      buffer.copy(buffer2, 0, 0);
-      print(buffer.buffer);
-      expect(buffer.buffer, [6, 7, 8, 9, 4, 5]);
-    });
+
     test('buffer.slice()', () {
       final buffer = Buffer.from(Uint8List.fromList([0, 1, 2, 3, 4]));
       final sliced = buffer.slice(1, 3);
