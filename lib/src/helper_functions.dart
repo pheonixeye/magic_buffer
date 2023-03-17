@@ -87,7 +87,7 @@ List<int> utf16leToBytes(String str, int units) {
   for (int i = 0; i < str.length; ++i) {
     if ((units -= 2) < 0) break;
 
-    c = str.codeUnitAt(i);
+    c = str.runes.elementAt(i);
     hi = c >> 8;
     lo = c % 256;
     byteArray.add(lo);
@@ -422,13 +422,13 @@ Buffer fromArrayBuffer(Uint8List array, [int byteOffset = 0, int length = 0]) {
     throw RangeError('"offset" is outside of buffer bounds');
   }
 
-  if (array.lengthInBytes < byteOffset + (length)) {
+  if (array.lengthInBytes < byteOffset + length) {
     throw RangeError('"length" is outside of buffer bounds');
   }
 
   Buffer buf;
   if (byteOffset == 0 && length == 0) {
-    buf = Buffer(Uint8List.fromList(array));
+    buf = Buffer(array);
   } else if (length == 0) {
     final l = Uint8List(array.length);
     l.setAll(byteOffset, array);
@@ -443,7 +443,7 @@ Buffer fromArrayBuffer(Uint8List array, [int byteOffset = 0, int length = 0]) {
 
 //from List<int>
 Buffer fromArrayLike(List<int> array) {
-  final length = checked(array.length) | 0;
+  final length = array.isEmpty ? 0 : checked(array.length) | 0;
   final buf = createBuffer(length);
   for (int i = 0; i < length; i += 1) {
     buf[i] = array[i] & 255;
@@ -452,13 +452,13 @@ Buffer fromArrayLike(List<int> array) {
 }
 
 //from arrayview ?? Uint8List View??
-Buffer fromArrayView(List<int> arrayView) {
-  if (arrayView is Uint8List) {
-    final copy = Buffer(Uint8List.sublistView(arrayView));
-    return fromArrayBuffer(copy.buffer, copy.offset, copy.length);
-  }
-  return fromArrayLike(arrayView);
-}
+// Buffer fromArrayView(List<int> arrayView) {
+//   if (arrayView is Uint8List) {
+//     final copy = Buffer(Uint8List.sublistView(arrayView));
+//     return fromArrayBuffer(copy.buffer, copy.offset, copy.length);
+//   }
+//   return fromArrayLike(arrayView);
+// }
 
 //check functions
 void checkInt(Buffer buf, int value, int offset, int ext, int max, int min) {

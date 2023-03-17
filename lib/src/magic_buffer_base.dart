@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_type_check
+
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -386,6 +388,7 @@ class Buffer {
     }
 
     final remaining = this.length - offset;
+    // ignore: unnecessary_null_comparison
     if (length == null || length > remaining) {
       length = remaining;
     }
@@ -683,6 +686,7 @@ class Buffer {
     return 0;
   }
 
+  //? tested - passed
   static Buffer concat(List<Buffer> list, [int length = 0]) {
     if (list.isEmpty) {
       return Buffer(0);
@@ -713,32 +717,6 @@ class Buffer {
     }
     return buffer;
   }
-
-  // //*! concat
-  // //? tested - failed
-  // static Buffer concat(List<Buffer> list, [int length = 0]) {
-  //   if (list.isEmpty) {
-  //     return Buffer.alloc(0);
-  //   }
-
-  //   int i;
-  //   if (length == 0) {
-  //     for (i = 0; i < list.length; ++i) {
-  //       length = length + list[i].length;
-  //     }
-  //   }
-
-  //   Buffer buffer = Buffer.allocUnsafe(length);
-  //   int pos = 0;
-  //   for (int i = 0; i < list.length; ++i) {
-  //     final buf = list[i];
-  //     final buflen = buf.length;
-  //     // buffer.copy(buf, pos);
-  //     buffer._buf.setAll(pos, buf._buf);
-  //     pos += buflen;
-  //   }
-  //   return buffer;
-  // }
 
   //* copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
   //*!copy
