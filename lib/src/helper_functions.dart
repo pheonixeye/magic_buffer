@@ -37,13 +37,12 @@ int checked(int length) {
 }
 
 //*Write Methods
-hexWrite(Buffer buf, String string, int offset, int length) {
-  // offset = Number(offset) || 0;
+//? tested - failed
+int hexWrite(Buffer buf, String string, [int offset = 0, int length = 0]) {
   final remaining = buf.length - offset;
-  if (length != 0) {
+  if (length == 0) {
     length = remaining;
   } else {
-    // length = Number(length);
     if (length > remaining) {
       length = remaining;
     }
@@ -51,13 +50,13 @@ hexWrite(Buffer buf, String string, int offset, int length) {
 
   final strLen = string.length;
 
-  if (length > strLen / 2) {
+  if (length > strLen ~/ 2) {
     length = strLen ~/ 2;
   }
   int i;
   for (i = 0; i < length; ++i) {
-    final parsed = int.parse(string.substring(i * 2, 2), radix: 16);
-    if (parsed == double.nan) {
+    final parsed = int.tryParse(string.substring(i * 2, 2), radix: 16);
+    if (parsed == null) {
       return i;
     }
     buf[offset + i] = parsed;
@@ -88,7 +87,7 @@ List<int> utf16leToBytes(String str, int units) {
   for (int i = 0; i < str.length; ++i) {
     if ((units -= 2) < 0) break;
 
-    c = str.codeUnitAt(i);
+    c = str.runes.elementAt(i);
     hi = c >> 8;
     lo = c % 256;
     byteArray.add(lo);
@@ -248,19 +247,21 @@ String latin1Slice(Buffer buf, int start, int end) {
   return ret;
 }
 
-String hexSlice(Buffer buf, int? start, int? end) {
+//? tested - failed
+String hexSlice(Buffer buf, int start, int end) {
   final len = buf.length;
 
-  if (start == null || start < 0) start = 0;
-  if (end == null || end < 0 || end > len) end = len;
+  if (start < 0) start = 0;
+  if (end < 0 || end > len) end = len;
 
   String out = '';
   for (int i = start; i < end; ++i) {
-    out += hexSliceLookupTable[buf[i]];
+    out += hexSliceLookupTable()[buf[i]];
   }
   return out;
 }
 
+//? tested - passed
 String utf16leSlice(Buffer buf, int start, int end) {
   final bytes = buf.slice(start, end);
   String res = '';
@@ -271,10 +272,10 @@ String utf16leSlice(Buffer buf, int start, int end) {
   return res;
 }
 
-List<String> hexSliceLookupTable = () {
+List<String> hexSliceLookupTable() {
   const alphabet = '0123456789abcdef';
-  List<String> table = [];
-  table.length = 256;
+  List<String> table = List.filled(256, '');
+  // table.length = 256;
   for (int i = 0; i < 16; ++i) {
     final i16 = i * 16;
     for (int j = 0; j < 16; ++j) {
@@ -282,7 +283,7 @@ List<String> hexSliceLookupTable = () {
     }
   }
   return table;
-}();
+}
 
 //* index functions
 
@@ -421,24 +422,28 @@ Buffer fromArrayBuffer(Uint8List array, [int byteOffset = 0, int length = 0]) {
     throw RangeError('"offset" is outside of buffer bounds');
   }
 
-  if (array.lengthInBytes < byteOffset + (length)) {
+  if (array.lengthInBytes < byteOffset + length) {
     throw RangeError('"length" is outside of buffer bounds');
   }
 
   Buffer buf;
   if (byteOffset == 0 && length == 0) {
-    buf = Buffer(Uint8List.fromList(array));
+    buf = Buffer(array);
   } else if (length == 0) {
-    buf = Buffer(Uint8List.sublistView(array, byteOffset));
+    final l = Uint8List(array.length);
+    l.setAll(byteOffset, array);
+    buf = Buffer(l);
   } else {
-    buf = Buffer(Uint8List.sublistView(array, byteOffset, length));
+    final l = Uint8List(length);
+    l.setAll(byteOffset, array);
+    buf = Buffer(l);
   }
   return buf;
 }
 
 //from List<int>
 Buffer fromArrayLike(List<int> array) {
-  final length = checked(array.length) | 0;
+  final length = array.isEmpty ? 0 : checked(array.length) | 0;
   final buf = createBuffer(length);
   for (int i = 0; i < length; i += 1) {
     buf[i] = array[i] & 255;
@@ -447,16 +452,16 @@ Buffer fromArrayLike(List<int> array) {
 }
 
 //from arrayview ?? Uint8List View??
-Buffer fromArrayView(List<int> arrayView) {
-  if (arrayView is Uint8List) {
-    final copy = Buffer(Uint8List.sublistView(arrayView));
-    return fromArrayBuffer(copy.buffer, copy.offset, copy.length);
-  }
-  return fromArrayLike(arrayView);
-}
+// Buffer fromArrayView(List<int> arrayView) {
+//   if (arrayView is Uint8List) {
+//     final copy = Buffer(Uint8List.sublistView(arrayView));
+//     return fromArrayBuffer(copy.buffer, copy.offset, copy.length);
+//   }
+//   return fromArrayLike(arrayView);
+// }
 
 //check functions
-void checkInt(buf, value, offset, ext, max, min) {
+void checkInt(Buffer buf, int value, int offset, int ext, int max, int min) {
   if (!Buffer.isBuffer(buf)) {
     throw InvalidTypeError('"buffer" argument must be a Buffer instance');
   }
